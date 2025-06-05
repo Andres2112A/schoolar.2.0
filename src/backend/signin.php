@@ -1,40 +1,38 @@
 <?php
-    include('../config/database.php');
 
+    include('../../config/database.php');
     session_start();
 
-    if(isset($_SESSION['user_id'])) {
-        header('Refresh: 0; URL=http://localhost/schoolar/src/home.php');
-    }
+    if (isset($_POST['email']) && isset($_POST['password'])) {
+        $email = $_POST['email'];
+        $passw = $_POST['password'];
+        $enc_pass = sha1($passw);
 
-    $email = $_POST['e_mail'];
-    $passw = $_POST['p_sswd'];
-    $enc_pass = sha1($passw);
+        $sql = "
+            SELECT 
+                id, firstName, lastName
+            FROM 
+                users
+            WHERE
+                email = '$email' AND
+                password = '$enc_pass'
+            LIMIT 1
+        ";
 
-    $sql = "
-        SELECT 
-            id,
-            COUNT(id) as total
-        FROM 
-            users
-        WHERE
-            email = '$email' and
-            password = '$enc_pass' and
-            status = true
-        GROUP BY
-            id
-    ";
+        $res = pg_query($conn, $sql);
 
-    $res = pg_query($conn, $sql);
-
-    if($res){
-        $row = pg_fetch_assoc($res);
-        if($row['total'] > 0){
-            //echo "Login OK";
+        if ($res && pg_num_rows($res) > 0) {
+            $row = pg_fetch_assoc($res);
             $_SESSION['user_id'] = $row['id'];
-            header('Refresh: 0; URL=http://localhost/schoolar/src/home.php');
-        }else{
-            echo "Login failed";
+            $_SESSION['user_name'] = $row['firstName'] . ' ' . $row['lastName'];
+            header('Location: home.php');
+            exit();
+        } else {
+            echo "<script>alert('Usuario o contraseña incorrectos'); window.location.href='login.html';</script>";
+            exit();
         }
+    } else {
+        echo "<script>alert('Por favor complete todos los campos'); window.location.href='login.html';</script>";
+        exit();
     }
 ?>
